@@ -1,5 +1,5 @@
 # Write tables
-  source("/Users/anthonyolund/Documents/r/chess/chess_tables.R")
+source("https://raw.githubusercontent.com/rivergrove/Join-the-dark-side-of-chess/master/tables.R")
 
 # win, loss, draw
   
@@ -25,7 +25,7 @@
   }
   
   # pie graphs
-  pie.games <- function(x){
+  pie.games <- function(x, y){
     
     white.summary <- data.frame(count(x[x$white == TRUE, ], result))
     names(white.summary)[2] <- "freq"
@@ -50,7 +50,14 @@
       coord_polar("y") +
       scale_fill_manual(values = c("grey","pink","lightgreen")) +
       facet_grid(facets=. ~ color) +
-      ggtitle("Win % By Color\n") +
+      ggtitle(paste0("win % by color against\n", 
+                    y, 
+                    "\n\nn = ", 
+                    nrow(x), 
+                    ",    ",
+                    "r2 = ", 
+                    round(chi.test.games(x),4),
+                    "\n")) +
       theme(plot.title = element_text(hjust = 0.5)) +
       xlab('') + ylab('') +
       theme(axis.ticks = element_blank(),
@@ -60,52 +67,39 @@
   }
   
   # games
-    chi.test.games(games)
-    pie.games(games)
-    nrow(games)
+    pie.games(games, "all opponents")
   
   # playing comp vs playing human
   
     # comp games
     comp.games <- games[grep("lichess AI", games$opp_name),]
-    
-      chi.test.games(comp.games)
-      pie.games(comp.games)
-      nrow(comp.games)
+
+      pie.games(comp.games, "computers")
     
     # human games
     human.games <- games[grepl("lichess AI", games$opp_name) == FALSE,]
-    
-      chi.test.games(human.games)
-      pie.games(human.games)
-      nrow(human.games)
+ 
+      pie.games(human.games, "humans")
   
     # strong humans 
     strong.humans <- human.games[human.games$opp_rating > 2000 &
                                    is.na(human.games$opp_rating) == FALSE,]
-    
-      chi.test.games(strong.humans)
-      pie.games(strong.humans)
-      nrow(strong.humans)
+
+      pie.games(strong.humans, "humans rated 2000+")
   
     # weak humans
     weak.humans <- human.games[human.games$opp_rating < 1600 &
                                    is.na(human.games$opp_rating) == FALSE,]
     
-      chi.test.games(weak.humans)
-      pie.games(weak.humans)
-      nrow(weak.humans)
+      pie.games(weak.humans, "humans rated 1600 or lower")
   
 # time
       
-      win.by.min <- data.frame(count(subset(games, is.na(sec) == FALSE), round_any((sec/60), 1, f = ceiling), result))
-      names(win.by.min)[1] <- "min"
-      
-      ggplot(win.by.min ,aes(x = min, y = n, fill = result)) +
-        geom_bar(stat = "identity") +
-        scale_fill_manual(values = c("grey","pink","lightgreen")) +
-        theme(axis.ticks = element_blank(),
-              axis.text.y = element_blank())
-
-      
-     
+    win.by.min <- data.frame(count(subset(games, is.na(sec) == FALSE), round_any((sec/60), 1, f = ceiling), result))
+    names(win.by.min)[1] <- "min"
+    
+    ggplot(win.by.min ,aes(x = min, y = n, fill = result)) +
+      geom_bar(stat = "identity") +
+      scale_fill_manual(values = c("grey","pink","lightgreen")) +
+      theme(axis.ticks = element_blank(),
+            axis.text.y = element_blank())
