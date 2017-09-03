@@ -1,0 +1,249 @@
+---
+title: "Join the Dark Side of Chess"
+author: "Anthony Olund"
+date: "9-2-17"
+output:
+  html_notebook: default
+  html_document: default
+subtitle: <h3>Using Data to Understand Why I Win More Games as Black</h3>
+---
+
+<br></br>
+<br></br>
+<br></br>
+  
+  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+I play a fair amount of chess. In the past 502 days I've played 504 games on [lichess.org](https://lichess.org). My [Elo rating](https://en.wikipedia.org/wiki/Elo_rating_system) usually fluctuates between 1800 and 2000, which denotes a high level amateur. Like most amateurs, I aspire to improve. And in this quest I stumbled upon a gem - a trove of personal chess data is available on lichess.   
+
+This presents a fascinating opportunity: I can quantitatively document characteristics of games I lose and win to shore up my weaknesses and replicate my strengths. Exciting.  
+
+<br></br>
+
+## Using Data to Become a Better Player
+
+On the top right corner of my lichess profile page lies a button to export every game I've played into a [data file](https://github.com/rivergrove/Join-the-dark-side-of-chess/blob/master/lichess_rivergrove_2017-04-03.csv). If I [clean](https://github.com/rivergrove/Join-the-dark-side-of-chess/blob/master/data_cleaning.R) this file, and [transform the data](https://github.com/rivergrove/Join-the-dark-side-of-chess/blob/master/tables.R), I am left with two tables: one that contains every game played, and a second with every move of those corresponding games. 
+
+```{r}
+# clean PNG file
+source("https://raw.githubusercontent.com/rivergrove/Join-the-dark-side-of-chess/master/data_cleaning.R")
+
+# transform into data tables
+source("https://raw.githubusercontent.com/rivergrove/Join-the-dark-side-of-chess/master/tables.R")
+```
+
+<br></br>
+<br></br>
+
+Let's take a look at the games table.
+
+I have 17 variables, or characteristics, of each game. 
+```{r}
+head(games)
+```
+
+<br></br>
+<br></br>
+
+Then there's the moves table. 
+
+Here I can drill down into each game and see how it was played.
+```{r}
+head(moves)
+```
+
+
+<br></br>
+<br></br>
+
+After reviewing the two tables, which characteristic would you guess has the greatest effect on whether I win, lose or draw?
+
+My first guess was whether I was white or black.
+
+To test this, I made a couple functions. A chi squared test function will see the statistical chance that the independent variable, white (TRUE or FALSE), affects the dependent variable, result (win, loss, draw). Am I better with white? Or black? Or neither?
+
+Then I made a pie graph function to visualize the effects. 
+
+```{r}
+# chi square test
+  chi.test.games <- function(x){
+    
+    white.summary <- data.frame(count(x[x$white == TRUE, ], result))
+    names(white.summary)[2] <- "freq"
+    white.summary$percent <- round(white.summary$freq/sum(white.summary$freq),3)
+    white.summary$color <- "white"
+    
+    black.summary <- data.frame(count(x[x$white == FALSE, ], result))
+    names(black.summary)[2] <- "freq"
+    black.summary$percent <- round(black.summary$freq/sum(black.summary$freq),3)
+    black.summary$color <- "black"
+    
+    chi.df <- merge(white.summary[,1:2], black.summary[,1:2], by="result")
+    names(chi.df)[2:3] <- c("white","black")
+    color.p_value <- chisq.test(chi.df[,2:3])$p.value
+    
+    color.p_value
+    
+  }
+  
+  # pie graphs
+  pie.games <- function(x, y){
+    
+    white.summary <- data.frame(count(x[x$white == TRUE, ], result))
+    names(white.summary)[2] <- "freq"
+    white.summary$percent <- round(white.summary$freq/sum(white.summary$freq),3)
+    white.summary$color <- "white"
+    
+    black.summary <- data.frame(count(x[x$white == FALSE, ], result))
+    names(black.summary)[2] <- "freq"
+    black.summary$percent <- round(black.summary$freq/sum(black.summary$freq),3)
+    black.summary$color <- "black"
+
+    win.percent <- rbind(white.summary, black.summary)
+    win.percent$color <- factor(win.percent$color, levels = c("white", "black"))
+    win.percent <- win.percent %>% group_by(color) %>% mutate(pos = 1 - (cumsum(percent) - percent/2))
+    win.percent$label <- paste0(win.percent$percent * 100, "%")
+    win.percent[win.percent$result == "draw", 6] <- ""
+    
+    ggplot(data = win.percent, aes(x = "", y=percent, fill=result)) +
+      geom_bar(width=10, stat = "identity") +
+      theme_void() +
+      geom_text(aes(x= factor(1), y=pos, label = label), size=3.5) +
+      coord_polar("y") +
+      scale_fill_manual(values = c("grey","pink","lightgreen")) +
+      facet_grid(facets=. ~ color) +
+      ggtitle(paste0("win % by color against\n", 
+                    y, 
+                    "\n\nn = ", 
+                    nrow(x), 
+                    ",    ",
+                    "r2 = ", 
+                    round(chi.test.games(x),4),
+                    "\n")) +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      xlab('') + ylab('') +
+      theme(axis.ticks = element_blank(),
+        axis.text.y = element_blank(),
+        axis.text.x = element_blank())
+  }
+```
+
+```{r}
+pie.games(games, "all opponents")
+```
+
+<br></br>
+
+## Better in Black
+
+This is interesting. I win 41% of my games as white, but 52% as black. Not what I was expecting. Moving first as white is a well documented advantage in chess. Lichess's AI computes that being white is equivalent to having an extra 1/5^th^ of a pawn. For humans it's usually worth more. 
+
+In fact, with an r^2^ of 2%, I can state that I am 98% confident that I am better with black than white. 
+
+I also have adequate sample. n = 476 games. You might notice that's less than the 504 I mentioned earlier. Good catch. There are many variations of chess, but I'm only investigating the standard variation; I'm not worried about my games in Chess960, Antichess or Crazyhouse right now.
+
+I am better with black, but why? Let's choose another variable and dig deeper. 
+
+I chose computers. Computers and people play differently, so maybe color plays a different role.
+```{r}
+# comp games
+comp.games <- games[grep("lichess AI", games$opp_name),]
+
+pie.games(comp.games, "computers")
+```
+
+That... is a smoking gun. I win 24% of my games as white, but 77% as black against computers. In fact, I am 99.98% sure that I play better with black than white against computers. 
+
+<br></br>
+
+How are computers different than humans?
+
+Computers...
+
+* Make objectively good moves
+* Use computational brute force, considering all moves
+* Are not susceptible to time pressure or baiting
+
+Humans...
+
+* Often make risky yet crafty moves
+* Use pattern recognition, knowing a good position compared with a bad one
+* Are emotional yet creative
+
+<br></br>
+
+## Human After All
+
+There's probably a lot to this story, but I want to become a better chess player against humans. So does my color affect wins and losses against humans?
+
+```{r}
+human.games <- games[grepl("lichess AI", games$opp_name) == FALSE,]
+ 
+      pie.games(human.games, "humans")
+```
+
+No. It does not. I'm 70% sure that I'm better with black than white against humans. That doesn't withstand any test of statistical significance, just as I wouldn't be surprised to flip a coin and get heads twice. 
+
+Bummer. My color makes a significant difference against computers, but it doesn't tell me much about my play versus humans. 
+
+Or maybe it does. 
+
+What kind of player plays like a computer? Which players make objectively good moves, consider all moves and are not susceptible to time pressure or baiting? Good ones. 
+
+How can I differentiate between a good player vs a bad player? I have a variable for that in the games table: opp_rating.
+
+```{r}
+# strong humans 
+strong.humans <- human.games[human.games$opp_rating > 2000 &
+                               is.na(human.games$opp_rating) == FALSE,]
+
+pie.games(strong.humans, "humans rated 2000+")
+```
+
+Just as expected. Against players with an Elo rating of 2000 or above, players considered experts or masters, I win 27% of my games as white, and 70% as black. I am 99.95% sure that I play better with black than white against top players. 
+
+Quick caveat, my console tells me "Chi-squared approximation may be incorrect". This is due to low sample. I have 78 games against players rated 2000 or above. Is that enough? In short, yes. More exactly, the Chi Squared test is testing if my color (black or white) affects the result of my game (win, loss or draw). A significant test with an r^2^ of 0.05 or lower means we are 95%+ confident that color affects the result of the game. And we have adequate sample for wins and losses. But not draws. So R is letting me know that it's unsure if color affects draws given the low sample. If we remove the draws from the sample, this message to the console will go away.
+
+Now I'm curious, what color do I prefer versus weaker players? I'm not sure... so let's check it out. 
+```{r}
+# weak humans
+weak.humans <- human.games[human.games$opp_rating < 1600 &
+                               is.na(human.games$opp_rating) == FALSE,]
+
+pie.games(weak.humans, "humans rated 1600 or lower")
+```
+
+Again, pretty cool story. Against players with an Elo rating of 1600 or below, low-mid level players, I win 69% of my games as white, and 31% as black. Yikes. That's pretty bad as black. I am 97% sure that I play better with white than black against low-mid level players.
+ 
+<br></br> 
+<br></br> 
+
+## Conclusion
+
+<br></br>
+
+I am better with black... but only against logical, talented players. I hypothesize this is due to my broad study of traditional openings. I know most objectively strong openings, and how to parry them. Even in the chaos of endless possibilities, I feel confident in the first 15-20 moves of most chess games, even against strong players. 
+
+I also play nearly entirely by pattern recognition rather than planning 10-20 moves ahead. I look at a board and use principles of chess to evaluate what *feels* like a good move. This is exactly how black needs to play, because there's no way to predict what's coming. White dictates the pace of the game. For the opening moves, black is just along for the ride. In the words of Yoda, "The dark side clouds everything. Impossible to see the future is."
+
+And why do I struggle so mightily as white? Because it's only an advantage if I plan ahead. It's only an advantage if I am forcing black to parry my every opening move until the mid-game, where I am ahead just enough to secure the victory. I don't plan ahead. 5 moves maybe. 10 moves never. That's not a sign of a strong player. 
+
+But against weak players, their unpredictability renders my study of traditional openings worthless. And I think to a degree I mirror their inadequacies. Against weaker players, looking 10 moves ahead as white is likely a distinct advantage. 
+
+<br></br>
+
+Back to the initial question: How do I use this data to become a better player?
+
+With white, I need to have a plan. I need to flesh out several opening strategies that run 20+ moves deep if I want to hang with top players or computers.
+
+With black, I need discipline against low-mid level players. I need to capitalize on their mistakes. If I mirror sloppy chess I will lose those games. As in Proverbs 26:4 KJV, "Answer not a fool according to his folly, lest thou also be like unto him." 
+
+Lastly, keep digging. I have a table of moves for each game. Surely, there's more insights unseen.
+
+<br></br>
+<br></br>
+<br></br>
