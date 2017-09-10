@@ -55,7 +55,7 @@ source("https://raw.githubusercontent.com/rivergrove/Join-the-dark-side-of-chess
                     "\n\nn = ", 
                     nrow(x), 
                     ",    ",
-                    "r2 = ", 
+                    "p-value = ", 
                     round(chi.test.games(x),4),
                     "\n")) +
       theme(plot.title = element_text(hjust = 0.5)) +
@@ -103,3 +103,6 @@ source("https://raw.githubusercontent.com/rivergrove/Join-the-dark-side-of-chess
       scale_fill_manual(values = c("grey","pink","lightgreen")) +
       theme(axis.ticks = element_blank(),
             axis.text.y = element_blank())
+
+    
+     
