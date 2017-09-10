@@ -26,10 +26,10 @@ This presents a fascinating opportunity: I can quantitatively document character
 
 ## Using Data to Become a Better Player
 
-On the top right corner of my lichess profile page lies a button to export every game I've played into a [data file](https://github.com/rivergrove/Join-the-dark-side-of-chess/blob/master/lichess_rivergrove_2017-04-03.csv). If I [clean](https://github.com/rivergrove/Join-the-dark-side-of-chess/blob/master/data_cleaning.R) this file, and [transform the data](https://github.com/rivergrove/Join-the-dark-side-of-chess/blob/master/tables.R), I am left with two tables: one that contains every game played, and a second with every move of those corresponding games. 
+On the top right corner of my lichess profile page lies a button to export every game I've played into a PGN file. If I clean this file, and transform the data, I am left with two tables: one that contains every game played, and a second with every move of those corresponding games. 
 
 ```{r}
-# clean PNG file
+# clean PGN file
 source("https://raw.githubusercontent.com/rivergrove/Join-the-dark-side-of-chess/master/data_cleaning.R")
 
 # transform into data tables
@@ -121,7 +121,7 @@ Then I made a pie graph function to visualize the effects.
                     "\n\nn = ", 
                     nrow(x), 
                     ",    ",
-                    "r2 = ", 
+                    "p-value = ", 
                     round(chi.test.games(x),4),
                     "\n")) +
       theme(plot.title = element_text(hjust = 0.5)) +
@@ -142,7 +142,7 @@ pie.games(games, "all opponents")
 
 This is interesting. I win 41% of my games as white, but 52% as black. Not what I was expecting. Moving first as white is a well documented advantage in chess. Lichess's AI computes that being white is equivalent to having an extra 1/5^th^ of a pawn. For humans it's usually worth more. 
 
-In fact, with an r^2^ of 2%, I can state that I am 98% confident that I am better with black than white. 
+In fact, with a p-value of 2%, I can state that I am 98% confident that I am better with black than white. 
 
 I also have adequate sample. n = 476 games. You might notice that's less than the 504 I mentioned earlier. Good catch. There are many variations of chess, but I'm only investigating the standard variation; I'm not worried about my games in Chess960, Antichess or Crazyhouse right now.
 
@@ -206,7 +206,7 @@ pie.games(strong.humans, "humans rated 2000+")
 
 Just as expected. Against players with an Elo rating of 2000 or above, players considered experts or masters, I win 27% of my games as white, and 70% as black. I am 99.95% sure that I play better with black than white against top players. 
 
-Quick caveat, my console tells me "Chi-squared approximation may be incorrect". This is due to low sample. I have 78 games against players rated 2000 or above. Is that enough? In short, yes. More exactly, the Chi Squared test is testing if my color (black or white) affects the result of my game (win, loss or draw). A significant test with an r^2^ of 0.05 or lower means we are 95%+ confident that color affects the result of the game. And we have adequate sample for wins and losses. But not draws. So R is letting me know that it's unsure if color affects draws given the low sample. If we remove the draws from the sample, this message to the console will go away.
+Quick caveat, my console tells me "Chi-squared approximation may be incorrect". This is due to low sample. I have 78 games against players rated 2000 or above. Is that enough? In short, yes. More exactly, the Chi Squared test is testing if my color (black or white) affects the result of my game (win, loss or draw). A significant test with a p-value of 0.05 or lower means we are 95%+ confident that color affects the result of the game. And we have adequate sample for wins and losses. But not draws. So R is letting me know that it's unsure if color affects draws given the low sample. If we remove the draws from the sample, this message to the console will go away.
 
 Now I'm curious, what color do I prefer versus weaker players? I'm not sure... so let's check it out. 
 ```{r}
@@ -232,7 +232,7 @@ I also play nearly entirely by pattern recognition rather than planning 10-20 mo
 
 And why do I struggle so mightily as white? Because it's only an advantage if I plan ahead. It's only an advantage if I am forcing black to parry my every opening move until the mid-game, where I am ahead just enough to secure the victory. I don't plan ahead. 5 moves maybe. 10 moves never. That's not a sign of a strong player. 
 
-But against weak players, their unpredictability renders my study of traditional openings worthless. And I think to a degree I mirror their inadequacies. Against weaker players, looking 10 moves ahead as white is likely a distinct advantage. 
+But against weak players, their unpredictability renders my study of traditional openings worthless. And as black, I believe I mirror their inadequacies. But as white against weaker players, looking 5 moves ahead is likely a distinct advantage. 
 
 <br></br>
 
@@ -240,7 +240,7 @@ Back to the initial question: How do I use this data to become a better player?
 
 With white, I need to have a plan. I need to flesh out several opening strategies that run 20+ moves deep if I want to hang with top players or computers.
 
-With black, I need discipline against low-mid level players. I need to capitalize on their mistakes. If I mirror sloppy chess I will lose those games. As in Proverbs 26:4 KJV, "Answer not a fool according to his folly, lest thou also be like unto him." 
+With black, I need discipline against low-mid level players. I need to capitalize on their mistakes. If I mirror sloppy chess I will lose those games.
 
 Lastly, keep digging. I have a table of moves for each game. Surely, there's more insights unseen.
 
